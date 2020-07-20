@@ -1,3 +1,6 @@
+/* Class */
+
+// 기본
 class Greeter {
   greeting: string;
   constructor(message: string) {
@@ -10,27 +13,31 @@ class Greeter {
 
 let greeter = new Greeter("world");
 
+// 상속
 class Animal {
-  age: number = 16; // 기본적으로 public
-  private sex: string = 'Male'; // 클래스 외부에서 액세스 불가능
-  protected numberOfLeg: number = 4; // 파생 클래스에서 액세스 가능
-  readonly lover: string = "삼순이"; // 읽기 전용
-  #name: string; // ECMA Script private field 문법
-  constructor(theName: string, readonly message: string) { // message는 초기화 되고 더이상 수정 불가능
+  public name: string;
+  public constructor(theName: string) {
     this.name = theName;
   }
-  move(distanceInMeters: number = 0) {
-    console.log(`Animal moved ${distanceInMeters}m.`);
+  public move(distanceInMeters: number = 0) {
+    console.log(`${this.name} moved ${distanceInMeters}m.`);
+  }
+}
+
+class Dog extends Animal {
+  bark() {
+    console.log("Woof! Woof!");
   }
 }
 
 class Snake extends Animal {
   constructor(name: string) {
-    super(name); // 상위 클래스의 생성자를 실행한다.
+    super(name); // 슈퍼 클래스의 생성자를 실행한다.
   }
-  move(distanceInMeters = 5) {
+  move(distanceInMters = 5) {
+    // 오버라이딩
     console.log("Slithering...");
-    super.move(distanceInMeters);
+    super.move(distanceInMters);
   }
 }
 
@@ -44,15 +51,85 @@ class Horse extends Animal {
   }
 }
 
-// 접근자 (getter, setter)
-const fullNameMaxLength = 10;
+let sam = new Snake("Sammy the Python");
+let tom: Animal = new Horse("Tommy the Palomino");
+
+// 수정자
+// 기본적으로 수정자를 쓰지 않았으면 public
+
+// ECMAScript Private Field
+// class Animal2 {
+//   #name: string; // tsconfig에서 타겟을 ES2015 이상으로 설정해야함
+//   constructor(theName: string) { this.#name = theName;}
+// }
+
+// new Animal2("Cat").#name; // 밖에서 접근 할수 없음!
+
+class Animal3 {
+  private name: string;
+  constructor(theName: string) {
+    this.name = theName;
+  }
+}
+
+// new Animal3("Cat").name; // Error
+
+class Rhino extends Animal3 {
+  constructor() {
+    super("Rhino");
+  }
+}
+
 class Employee {
+  private name: string;
+  constructor(theName: string) {
+    this.name = theName;
+  }
+}
+
+let animal = new Animal3("Goat");
+let rhino = new Rhino();
+let employee = new Employee("Bob");
+
+animal = rhino; // Ok
+// animal = employee // Error
+
+class Person {
+  protected name: string; // 하위 클래스에서도 계속 액세스 할 수 있다.
+  // 클래스 외부에서 인스턴스화 할 수 없지만 확장은 가능하다.
+  protected constructor(name: string) {
+    this.name = name;
+  }
+}
+
+class PersonEmployee extends Person {
+  private department: string;
+  // readonly는 선언시 초기화 하거나 생성자에서 초기화만 가능
+  readonly numberOfPart: number = 6;
+
+  constructor(name: string, department: string) {
+    super(name); // protected property access
+    this.department = department;
+  }
+
+  public getElevatorPitch() {
+    return `Hello my name is ${this.name} and I work in ${this.department}.`;
+  }
+}
+
+let howard = new PersonEmployee("Howard", "Sales");
+
+// 접근자
+const fullNameMaxLength = 10;
+
+class MyEmployee {
   private _fullName: string;
 
   get fullName(): string {
     return this._fullName;
   }
 
+  // 값을 설정할때 조건을 추가 할 수 있다.
   set fullName(newName: string) {
     if (newName && newName.length > fullNameMaxLength) {
       throw new Error("fullName has a max length of " + fullNameMaxLength);
@@ -62,13 +139,10 @@ class Employee {
   }
 }
 
-let employee = new Employee();
-employee.fullName = "Bob Smith";
-if (employee.fullName) {
-  console.log(employee.fullName);
-}
+let myEmployee = new MyEmployee();
+myEmployee.fullName = "Bob Smith";
 
-// static property
+// static
 class Grid {
   static origin = { x: 0, y: 0 };
   calculateDistanceFromOrigin(point: { x: number; y: number }) {
@@ -79,13 +153,11 @@ class Grid {
   constructor(public scale: number) {}
 }
 
-let grid1 = new Grid(1.0); // 1x scale
-let grid2 = new Grid(5.0); // 5x scale
-
-console.log(grid1.calculateDistanceFromOrigin({ x: 10, y: 10 }));
-console.log(grid2.calculateDistanceFromOrigin({ x: 10, y: 10 }));
+let grid1 = new Grid(1.0);
+let grid2 = new Grid(5.0);
 
 // 추상 클래스
+// 추상 클래스는 인스턴스화 할 수 없고 추상 메소드는 구현을 포함하지 않고 파생 클래스에서 구현한다.
 abstract class Department {
   constructor(public name: string) {}
 
@@ -93,12 +165,12 @@ abstract class Department {
     console.log("Department name: " + this.name);
   }
 
-  abstract printMeeting(): void; // must be implemented in derived classes
+  abstract printMeeting(): void; // 파생 클래스에서 반드시 구현되어야 함
 }
 
 class AccountingDepartment extends Department {
   constructor() {
-    super("Accounting and Auditing"); // constructors in derived classes must call super()
+    super("Accounting and Auditing");
   }
 
   printMeeting(): void {
@@ -110,14 +182,9 @@ class AccountingDepartment extends Department {
   }
 }
 
-// 클래스를 인터페이스로 사용
-class Point {
-  x: number;
-  y: number;
-}
-
-interface Point3d extends Point {
-  z: number;
-}
-
-let point3d: Point3d = { x: 1, y: 2, z: 3 };
+let department: Department; // Ok 추상 타입으로 참조를 생성 할 수 있음
+// department = new Department(); // Error 추상 클래스는 인스턴스화 할 수 없음
+department = new AccountingDepartment(); // ok 서브 클래스를 할당 가능
+department.printName();
+department.printMeeting();
+department.generateReports();

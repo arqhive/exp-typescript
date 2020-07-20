@@ -1,12 +1,11 @@
-// 타입스크립트의 핵심 원칙 중 하나는 유형 검사가 값의 모양에 중점을 둔다는 것이다.
-// 이것을 "덕 타이핑", "구조적 서브 타이핑"이라고도 한다.
+/* Interface */
 
-// 첫 예제
-// 중요한건 모양 뿐이다!
+// 요구 사항을 설명하는 데 사용하는 이름이다.
 interface LabeledValue {
   label: string;
 }
 
+// 컴파일러는 최소한 필요한것이 존재하고 필요한 유형과 일치 하는지 확인한다.
 function printLabel(labeledObj: LabeledValue) {
   console.log(labeledObj.label);
 }
@@ -14,14 +13,15 @@ function printLabel(labeledObj: LabeledValue) {
 let myObj = { size: 10, label: "Size 10 Object" };
 printLabel(myObj);
 
-/* 선택적 속성 */
-interface SqureConfig {
+// 선택적 속성
+// 특정 조건 하에서 존재하거나 전혀 존재하지 않는 경우의 패턴
+interface SquareConfig {
   color?: string;
   width?: number;
-  [propName: string]: any; // 문자열 인덱스 서명을 추가한다. (초과하는 속성 점검)
+  [propName: string]: any; // 문자열 인덱스 서명
 }
 
-function createSquare(config: SqureConfig): { color: string; area: number } {
+function createSquare(config: SquareConfig): { color: string; area: number } {
   let newSquare = { color: "white", area: 100 };
   if (config.color) {
     newSquare.color = config.color;
@@ -32,47 +32,45 @@ function createSquare(config: SqureConfig): { color: string; area: number } {
   return newSquare;
 }
 
-let mySqaure = createSquare({ color: "black" });
+let mySquare = createSquare({ color: "black" }); // width는 사용하지 않았음
 
-/* 읽기 전용 속성 */
-// 일부 속성은 객체가 처음 생성 될 때만 수정 가능해야 한다.
+// 아래와 같은 경우 타입 어설션으로 유형 점검을 회피 할 수 있음
+// 더 좋은 방법은 문자열 인덱스 서명을 추가하는 것 (interface 확인)
+let mySquare2 = createSquare({ colour: "red", width: 100 } as SquareConfig);
+let mySquare3 = createSquare({ width: 100, opacity: 0.5 });
+
+// 읽기 전용 속성
+// 일부 속성은 객체가 처음 생성 될 때만 (선언 될때만) 수정되어야 한다.
 interface Point {
   readonly x: number;
   readonly y: number;
 }
 
 let p1: Point = { x: 10, y: 20 };
-// p1.x = 5; Error!
+// p1.x = 5; // Error
 
-// ReadonlyArray<T>를 사용해 배열을 변경하지 못하게 할 수 있음
+// ReadonlyArray<T>
 let a: number[] = [1, 2, 3, 4];
 let ro: ReadonlyArray<number> = a;
+// ro[0] = 12; // Error
+// a = ro; Error....
+a = ro as number[]; // type assertion을 통해 덮어 씌울수는 있음
 
-// ro[0] = 12; Error
-// type assertiong으로 재정의 할 수 있다.
-a = ro as number[];
+// 속성은 readonly, 변수는 const
 
-// 변수는 const 속성은 readonly
-
-/* Excess Property Checks (초과하는 속성 점검) */
-// 타입 어설션을 이용한다.
-let mySqaure2 = createSquare({ width: 100, opacity: 0.5 } as SqureConfig);
-
-/* function type */
+// 함수 유형
 interface SearchFunc {
   (source: string, subString: string): boolean;
 }
 
 let mySearch: SearchFunc;
-
-// 매개 변수 이름은 자유
-// 타입은 인터페이스에 선언되어있으므로 생략 가능
+// 매개변수 이름을 바꿔도 되고 유형을 생략해도 됨
 mySearch = function(source: string, subString: string) {
   let result = source.search(subString);
   return result > -1;
 };
 
-/* 인덱서블 타입 */
+// 인덱서블 타입
 interface StringArray {
   [index: number]: string;
 }
@@ -82,40 +80,32 @@ myArray = ["Bob", "Fred"];
 
 let myStr: string = myArray[0];
 
-interface NumberDictionary {
-  // [index: string]: number; Error
-  [index: string]: number | string;
-  length: number; // ok, length is a number
-  name: string;
-}
-
 interface ReadonlyStringArray {
   readonly [index: number]: string;
 }
+let myArray2: ReadonlyStringArray = ["Alice", "Bob"];
+// myArray2[2] = "Mallory"; // error!
 
-/* Class Type */
-// interface ClockInterface {
-//   currentTime: Date;
-//   setTime(d: Date): void;
-// }
-//
-// class Clock implements ClockInterface {
-//   currentTime: Date = new Date();
-//   setTime(d: Date) {
-//     this.currentTime = d;
-//   }
-//   constructor(h: number, m: number) {}
-// }
-
+// Class
+// Class Property 설명
 // 인터페이스는 클래스의 인스턴스 측만 검사한다.
-// 정적부분을 검사혀려면 아래와 같이 한다.
-
-interface ClockConstructor {
-  new (hour: number, minute: number): ClockInterface;
+interface ClockInterface {
+  currentTime?: Date;
+  setTime?(d: Date): void;
+  // new (hour: number, minute: number); 생성자는 정적 측에 있으므로 검사에는 포함되지 않는다.
 }
 
-interface ClockInterface {
-  tick(): void;
+class Clock implements ClockInterface {
+  currentTime: Date = new Date();
+  setTime(d: Date) {
+    this.currentTime = d;
+  }
+  constructor(h: number, m: number) {}
+}
+
+// 그럼 어떻게 해?
+interface ClockConstructor {
+  new (hour: number, minute: number): ClockInterface;
 }
 
 function createClock(
@@ -128,30 +118,16 @@ function createClock(
 
 class DigitalClock implements ClockInterface {
   constructor(h: number, m: number) {}
-  tick() {
-    console.log("beep beep");
-  }
 }
 
-class AnalogClock implements ClockInterface {
-  constructor(h: number, m: number) {}
-  tick() {
-    console.log("tick tock");
-  }
-}
+let digital = createClock(DigitalClock, 12, 17);
 
-let digial = createClock(DigitalClock, 12, 17);
-let analog = createClock(AnalogClock, 7, 32);
-
-// 다른 방식은 클래스 표현식을 사용한다.
-const Clock: ClockConstructor = class Clock implements ClockInterface {
+// 또 다른 방법은 클래스 표현식을 사용한다.
+const Clock2: ClockConstructor = class Clock implements ClockInterface {
   constructor(h: number, m: number) {}
-  tick() {
-    console.log("beep beep");
-  }
 };
 
-/* 인터페이스 확장 */
+// 인터페이스 확장
 interface Shape {
   color: string;
 }
@@ -169,7 +145,7 @@ square.color = "blue";
 square.sideLength = 10;
 square.penWidth = 5.0;
 
-/* 하이브리드 타입 */
+// 하이브리드 유형
 interface Counter {
   (start: number): string;
   interval: number;
@@ -178,7 +154,7 @@ interface Counter {
 
 function getCounter(): Counter {
   let counter = function(start: number) {} as Counter;
-  counter.interval = 123;
+  counter.interval = 12;
   counter.reset = function() {};
   return counter;
 }
